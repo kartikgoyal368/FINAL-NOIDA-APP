@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Asteroids Learning Platform</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
+    <link rel="stylesheet" href="learning.css">
+</head>
+<body>
+    <div id="container">
+        <div id="earth-container"></div>
+        
+        <div id="ui-overlay">
+            <div id="header">
+                <div id="title">3D Asteroids Learning Platform</div>
+                <div id="stats">
+                    <div class="stat-box">Total Asteroids: <span id="total-count">0</span></div>
+                    <div class="stat-box">Potentially Hazardous: <span id="hazard-count">0</span></div>
+                    <div class="stat-box">Closest Approach: <span id="closest-date">N/A</span></div>
+                </div>
+            </div>
+            
+            <div id="asteroid-panel">
+                <div class="panel-header">
+                    <h2>Asteroid Details</h2>
+                    <button id="close-panel">X</button>
+                </div>
+                <div id="asteroid-name">Asteroid Name</div>
+                <div id="asteroid-subtitle">Near-Earth Object</div>
+                
+                <div id="hazard-indicator" class="safe">Non-Hazardous</div>
+                
+                <div id="asteroid-visualization">
+                    <div id="mini-asteroid"></div>
+                    <div id="scan-animation">
+                        <div class="scan-line"></div>
+                        <div class="scan-pulse"></div>
+                    </div>
+                </div>
+                
+                <button id="scan-button" class="scan-btn">Scan Asteroid Composition</button>
+                <div id="scan-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
+                    <div class="progress-text">Scanning: 0%</div>
+                </div>
+                
+                <div class="info-section">
+                    <div class="section-title">Orbital Information</div>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-label">Diameter</div>
+                            <div class="info-value" id="diameter">~500 m</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Velocity</div>
+                            <div class="info-value" id="velocity">15 km/s</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Miss Distance</div>
+                            <div class="info-value" id="miss-distance">5.2 million km</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Orbiting Body</div>
+                            <div class="info-value" id="orbiting-body">Earth</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="info-section">
+                    <div class="section-title">Close Approach Data</div>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-label">Date</div>
+                            <div class="info-value" id="approach-date">2023-10-15</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Time</div>
+                            <div class="info-value" id="approach-time">12:30 UTC</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="info-section" id="composition-section" style="display: none;">
+                    <div class="section-title">Composition Analysis</div>
+                    <div id="composition-data">
+                        <!-- Composition data will be populated here -->
+                    </div>
+                </div>
+                
+                <div class="info-section" id="value-section" style="display: none;">
+                    <div class="section-title">Estimated Value</div>
+                    <div id="asteroid-value">Loading...</div>
+                </div>
+                
+                <div class="info-section">
+                    <div class="section-title">Additional Information</div>
+                    <div class="info-item">
+                        <div class="info-label">Absolute Magnitude</div>
+                        <div class="info-value" id="magnitude">18.5</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="instructions">
+                Use mouse to rotate, scroll to zoom • Click on asteroid labels for details
+            </div>
+            
+            <!-- Chatbot Icon -->
+            <div id="chatbot-icon">
+                <svg viewBox="0 0 24 24">
+                    <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z"/>
+                    <circle cx="8" cy="10" r="1"/>
+                    <circle cx="12" cy="10" r="1"/>
+                    <circle cx="16" cy="10" r="1"/>
+                </svg>
+            </div>
+            
+            <!-- Chatbot Panel -->
+            <div id="chatbot-panel">
+                <div id="chat-header">
+                    <h3>AI Space Assistant</h3>
+                    <button id="close-chat">X</button>
+                </div>
+                <div id="api-key-container">
+                    <input type="password" id="api-key-input" placeholder="Enter your OpenAI API key">
+                    <button id="save-api-key">Save</button>
+                </div>
+                <div id="chat-messages">
+                    <div class="message bot-message">
+                        Hello! I'm your AI space assistant. Ask me anything about asteroids, space, or this visualization!
+                    </div>
+                </div>
+                <div id="chat-input-container">
+                    <input type="text" id="chat-input" placeholder="Ask about asteroids...">
+                    <button id="send-message">
+                        <svg viewBox="0 0 24 24" width="20" height="20">
+                            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" fill="white"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <button id="back-btn">Back to Earth View</button>
+        
+        <div id="loading">
+            <div class="spinner"></div>
+            <div>Loading 3D Earth and Asteroid Data from NASA API...</div>
+        </div>
+        
+        <div id="error-message">
+            <div>Error loading asteroid data from NASA API</div>
+            <button id="refresh-btn">Try Again</button>
+        </div>
+    </div>
+    <script src="learning1.js"></script>
+</body>
+</html>

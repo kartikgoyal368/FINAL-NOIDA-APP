@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Impact Analysis - Asteroid Impact Simulator</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #0a0e2a; color: #fff; overflow-x: hidden; }
+        
+        .header {
+            background: linear-gradient(135deg, #1a2a6c, #4facfe);
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, #fff, #a0e7ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(79, 172, 254, 0.5);
+            color: #4facfe;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .back-btn:hover {
+            background: rgba(79, 172, 254, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .impact-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .impact-card {
+            background: rgba(20, 25, 60, 0.8);
+            border-radius: 15px;
+            padding: 1.5rem;
+            border-left: 4px solid #4facfe;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        
+        .impact-card h2 {
+            color: #4facfe;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+        
+        .impact-value {
+            color: #00f2fe;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        
+        .map-container {
+            height: 500px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            margin-bottom: 2rem;
+            border: 2px solid rgba(79, 172, 254, 0.5);
+        }
+        
+        #impact-map {
+            height: 100%;
+            width: 100%;
+        }
+        
+        .effects-timeline {
+            background: rgba(20, 25, 60, 0.8);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .timeline-item {
+            display: flex;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .timeline-time {
+            min-width: 150px;
+            color: #00f2fe;
+            font-weight: bold;
+        }
+        
+        .timeline-event {
+            flex: 1;
+        }
+        
+        .blast-legend {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 1rem;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        
+        .immediate-blast { background-color: rgba(255, 0, 0, 0.7); }
+        .severe-damage { background-color: rgba(255, 165, 0, 0.7); }
+        .moderate-damage { background-color: rgba(255, 255, 0, 0.7); }
+        
+        @media (max-width: 768px) {
+            .impact-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .blast-legend {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <button class="back-btn" onclick="window.history.back()">← Back to Simulation</button>
+        <h1>🌋 Detailed Impact Analysis</h1>
+        <p>Comprehensive breakdown of the asteroid impact effects</p>
+    </div>
+    
+    <div class="container">
+        <div class="impact-grid">
+            <div class="impact-card">
+                <h2>💥 Impact Energy</h2>
+                <p><span class="impact-value" id="energy-value">0</span> megatons of TNT</p>
+                <p>Equivalent to <span id="nuclear-equivalent">0</span> times the largest nuclear weapon ever tested</p>
+            </div>
+            
+            <div class="impact-card">
+                <h2>🕳️ Crater Dimensions</h2>
+                <p>Diameter: <span class="impact-value" id="crater-diameter">0</span> km</p>
+                <p>Depth: <span class="impact-value" id="crater-depth">0</span> km</p>
+            </div>
+            
+            <div class="impact-card">
+                <h2>🌡️ Environmental Effects</h2>
+                <p>Global temperature drop: <span class="impact-value" id="temp-drop">0</span>°C</p>
+                <p>Duration of impact winter: <span class="impact-value" id="winter-duration">0</span> years</p>
+            </div>
+            
+            <div class="impact-card">
+                <h2>🌊 Tsunami Potential</h2>
+                <p>Wave height: <span class="impact-value" id="tsunami-height">0</span> meters</p>
+                <p>Coastal flooding distance: <span class="impact-value" id="flood-distance">0</span> km inland</p>
+            </div>
+        </div>
+        
+        <div class="map-container">
+            <div id="impact-map"></div>
+        </div>
+        
+        <div class="blast-legend">
+            <div class="legend-item">
+                <div class="legend-color immediate-blast"></div>
+                <span>Immediate Destruction Zone</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color severe-damage"></div>
+                <span>Severe Damage Zone</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color moderate-damage"></div>
+                <span>Moderate Damage Zone</span>
+            </div>
+        </div>
+        
+        <div class="effects-timeline">
+            <h2>⏰ Impact Timeline</h2>
+            <div id="timeline-content">
+                <!-- Timeline will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        // Get impact data from URL parameters or localStorage
+        const urlParams = new URLSearchParams(window.location.search);
+        let impactData;
+        
+        if (urlParams.has('data')) {
+            // Data passed via URL
+            impactData = JSON.parse(decodeURIComponent(urlParams.get('data')));
+        } else {
+            // Try to get from localStorage
+            impactData = JSON.parse(localStorage.getItem('impactData')) || getDefaultImpactData();
+        }
+        
+        // Initialize the page with impact data
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeImpactAnalysis(impactData);
+        });
+        
+        function initializeImpactAnalysis(data) {
+            // Update impact metrics
+            document.getElementById('energy-value').textContent = data.energy_megatons.toLocaleString();
+            document.getElementById('nuclear-equivalent').textContent = Math.round(data.energy_megatons / 50); // Tsar Bomba was ~50 MT
+            
+            document.getElementById('crater-diameter').textContent = data.crater_diameter_km;
+            document.getElementById('crater-depth').textContent = (data.crater_diameter_km * 0.2).toFixed(1); // Rough estimate
+            
+            document.getElementById('temp-drop').textContent = (data.energy_megatons / 10000).toFixed(1);
+            document.getElementById('winter-duration').textContent = Math.max(1, Math.round(data.energy_megatons / 50000));
+            
+            // Calculate tsunami effects for ocean impacts
+            if (data.impact_location.location_type === 'Ocean') {
+                document.getElementById('tsunami-height').textContent = Math.round(data.energy_megatons / 100);
+                document.getElementById('flood-distance').textContent = Math.round(data.energy_megatons / 50);
+            } else {
+                document.getElementById('tsunami-height').textContent = '0';
+                document.getElementById('flood-distance').textContent = '0';
+                document.querySelector('h2:contains("Tsunami Potential")').parentElement.style.display = 'none';
+            }
+            
+            // Initialize map
+            initializeMap(data);
+            
+            // Generate timeline
+            generateTimeline(data);
+        }
+        
+        function initializeMap(data) {
+            // Create map centered on impact location
+            const map = L.map('impact-map').setView(
+                [data.impact_location.latitude, data.impact_location.longitude], 
+                6
+            );
+            
+            // Add tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            // Calculate blast radii based on impact energy
+            const immediateBlastRadius = Math.sqrt(data.energy_megatons) * 2; // km
+            const severeDamageRadius = immediateBlastRadius * 3;
+            const moderateDamageRadius = severeDamageRadius * 2;
+            
+            // Add blast radius circles
+            L.circle([data.impact_location.latitude, data.impact_location.longitude], {
+                color: 'red',
+                fillColor: '#f03',
+                fillOpacity: 0.5,
+                radius: immediateBlastRadius * 1000 // Convert to meters
+            }).addTo(map).bindPopup('Immediate Destruction Zone');
+            
+            L.circle([data.impact_location.latitude, data.impact_location.longitude], {
+                color: 'orange',
+                fillColor: '#ffa500',
+                fillOpacity: 0.3,
+                radius: severeDamageRadius * 1000
+            }).addTo(map).bindPopup('Severe Damage Zone');
+            
+            L.circle([data.impact_location.latitude, data.impact_location.longitude], {
+                color: 'yellow',
+                fillColor: '#ffff00',
+                fillOpacity: 0.2,
+                radius: moderateDamageRadius * 1000
+            }).addTo(map).bindPopup('Moderate Damage Zone');
+            
+            // Add impact marker
+            L.marker([data.impact_location.latitude, data.impact_location.longitude])
+                .addTo(map)
+                .bindPopup(`
+                    <strong>Impact Site</strong><br>
+                    ${data.impact_location.continent}<br>
+                    ${data.impact_location.location_type}<br>
+                    Energy: ${data.energy_megatons.toLocaleString()} MT
+                `)
+                .openPopup();
+        }
+        
+        function generateTimeline(data) {
+            const timeline = document.getElementById('timeline-content');
+            const events = [
+                { time: 'Impact +0 seconds', event: 'Initial blast wave destroys everything within ' + Math.round(Math.sqrt(data.energy_megatons) * 2) + ' km' },
+                { time: 'Impact +1 minute', event: 'Seismic waves trigger earthquakes up to magnitude ' + data.seismic_magnitude },
+                { time: 'Impact +10 minutes', event: 'Ejecta begins falling back to Earth, starting fires' },
+                { time: 'Impact +1 hour', event: data.impact_location.location_type === 'Ocean' ? 'Tsunami waves reach coastal areas' : 'Dust cloud begins to form' },
+                { time: 'Impact +1 day', event: 'Atmospheric dust begins to affect global climate' },
+                { time: 'Impact +1 week', event: 'Global temperature drop becomes noticeable' },
+                { time: 'Impact +1 month', event: 'Widespread crop failures begin due to climate changes' },
+                { time: 'Impact +1 year', event: 'Long-term climate effects peak, ecosystem disruption continues' }
+            ];
+            
+            events.forEach(event => {
+                const item = document.createElement('div');
+                item.className = 'timeline-item';
+                item.innerHTML = `
+                    <div class="timeline-time">${event.time}</div>
+                    <div class="timeline-event">${event.event}</div>
+                `;
+                timeline.appendChild(item);
+            });
+        }
+        
+        function getDefaultImpactData() {
+            return {
+                energy_megatons: 150,
+                crater_diameter_km: 12.3,
+                seismic_magnitude: 7.8,
+                impact_location: {
+                    latitude: 40.0,
+                    longitude: -100.0,
+                    location_type: 'Land',
+                    continent: 'North America'
+                }
+            };
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulation Data Visualization - Asteroid Impact Simulator</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #000000; color: #fff; overflow-x: hidden; }
+        
+        .header {
+            background: linear-gradient(135deg, #000000, #000000);
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, #fff, #a0e7ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(79, 172, 254, 0.5);
+            color: #4facfe;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .back-btn:hover {
+            background: rgba(0, 0, 0, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+            border-left: 4px solid #000000;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: #a0a0c0;
+            font-size: 0.9rem;
+        }
+        
+        .visualization-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        @media (max-width: 968px) {
+            .visualization-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .viz-card {
+            background: rgba(20, 25, 60, 0.8);
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(79, 172, 254, 0.3);
+        }
+        
+        .viz-card h2 {
+            color: #4facfe;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        
+        .map-container {
+            height: 400px;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid rgba(79, 172, 254, 0.3);
+        }
+        
+        #impact-map {
+            height: 100%;
+            width: 100%;
+        }
+        
+        .simulations-list {
+            background: rgba(20, 25, 60, 0.8);
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        
+        .simulation-item {
+            background: rgba(30, 35, 70, 0.6);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .simulation-item:hover {
+            transform: translateX(5px);
+            background: rgba(40, 45, 90, 0.8);
+        }
+        
+        .simulation-item.impact {
+            border-left-color: #ff6b6b;
+        }
+        
+        .simulation-item.miss {
+            border-left-color: #4caf50;
+        }
+        
+        .simulation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .simulation-title {
+            font-weight: bold;
+            color: #4facfe;
+        }
+        
+        .simulation-date {
+            color: #a0a0c0;
+            font-size: 0.8rem;
+        }
+        
+        .simulation-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.5rem;
+            font-size: 0.85rem;
+        }
+        
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .detail-label {
+            color: #a0a0c0;
+        }
+        
+        .detail-value {
+            color: #00f2fe;
+            font-weight: 600;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 3rem;
+            color: #a0a0c0;
+        }
+        
+        .no-data h3 {
+            margin-bottom: 1rem;
+            color: #4facfe;
+        }
+        
+        .clear-btn {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+        }
+        
+        .clear-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+        }
+        
+        .impact-badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+        
+        .impact-badge.impact {
+            background: rgba(255, 107, 107, 0.3);
+            color: #ff6b6b;
+        }
+        
+        .impact-badge.miss {
+            background: rgba(76, 175, 80, 0.3);
+            color: #4caf50;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <button class="back-btn" onclick="window.location.href='index.html'">← Back to Main</button>
+        <h1>📊 Simulation Data Visualization</h1>
+        <p>Interactive analysis of all your asteroid impact simulations</p>
+    </div>
+    
+    <div class="container">
+        <!-- Statistics Overview -->
+        <div class="stats-grid" id="stats-grid">
+            <!-- Stats will be populated by JavaScript -->
+        </div>
+        
+        <!-- Main Visualization Grid -->
+        <div class="visualization-grid">
+            <!-- Impact Map -->
+            <div class="viz-card">
+                <h2>🌍 Impact Locations</h2>
+                <div class="map-container">
+                    <div id="impact-map"></div>
+                </div>
+            </div>
+            
+            <!-- Energy Distribution Chart -->
+            <div class="viz-card">
+                <h2>💥 Energy Distribution</h2>
+                <div class="chart-container">
+                    <canvas id="energy-chart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Impact vs Miss Ratio -->
+            <div class="viz-card">
+                <h2>🎯 Impact Success Rate</h2>
+                <div class="chart-container">
+                    <canvas id="impact-ratio-chart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Timeline Chart -->
+            <div class="viz-card">
+                <h2>📅 Simulation Timeline</h2>
+                <div class="chart-container">
+                    <canvas id="timeline-chart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Simulations List -->
+        <div class="simulations-list">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2>🕐 Recent Simulations</h2>
+                <button class="clear-btn" id="clear-data-btn">Clear All Data</button>
+            </div>
+            <div id="simulations-list">
+                <!-- Simulations will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        class SimulationVisualizer {
+            constructor() {
+                this.simulationData = [];
+                this.charts = {};
+                this.map = null;
+                this.init();
+            }
+            
+            init() {
+                this.loadData();
+                this.setupEventListeners();
+                this.renderAllVisualizations();
+            }
+            
+            loadData() {
+                const storedData = localStorage.getItem('asteroidSimulations');
+                this.simulationData = storedData ? JSON.parse(storedData) : [];
+                console.log('Loaded simulations:', this.simulationData.length);
+            }
+            
+            setupEventListeners() {
+                document.getElementById('clear-data-btn').addEventListener('click', () => this.clearData());
+            }
+            
+            renderAllVisualizations() {
+                this.renderStats();
+                this.renderMap();
+                this.renderCharts();
+                this.renderSimulationsList();
+            }
+            
+            renderStats() {
+                const statsGrid = document.getElementById('stats-grid');
+                
+                if (this.simulationData.length === 0) {
+                    statsGrid.innerHTML = `
+                        <div class="stat-card">
+                            <div class="stat-value">0</div>
+                            <div class="stat-label">Total Simulations</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">0</div>
+                            <div class="stat-label">Impacts Detected</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">0%</div>
+                            <div class="stat-label">Impact Rate</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">0 MT</div>
+                            <div class="stat-label">Avg Energy</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const totalSimulations = this.simulationData.length;
+                const impacts = this.simulationData.filter(sim => sim.impact_occurred).length;
+                const misses = totalSimulations - impacts;
+                const impactRate = ((impacts / totalSimulations) * 100).toFixed(1);
+                const avgEnergy = this.simulationData.reduce((sum, sim) => sum + (sim.energy_megatons || 0), 0) / totalSimulations;
+                
+                statsGrid.innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-value">${totalSimulations}</div>
+                        <div class="stat-label">Total Simulations</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${impacts}</div>
+                        <div class="stat-label">Impacts Detected</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${misses}</div>
+                        <div class="stat-label">Near Misses</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${impactRate}%</div>
+                        <div class="stat-label">Impact Rate</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${avgEnergy.toFixed(0)} MT</div>
+                        <div class="stat-label">Avg Energy</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${this.getMostCommonLocation()}</div>
+                        <div class="stat-label">Most Common Location</div>
+                    </div>
+                `;
+            }
+            
+            getMostCommonLocation() {
+                const locations = this.simulationData
+                    .filter(sim => sim.impact_occurred && sim.impact_location)
+                    .map(sim => sim.impact_location.location_type);
+                
+                if (locations.length === 0) return 'N/A';
+                
+                const counts = locations.reduce((acc, location) => {
+                    acc[location] = (acc[location] || 0) + 1;
+                    return acc;
+                }, {});
+                
+                return Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+            }
+            
+            renderMap() {
+                // Initialize map
+                this.map = L.map('impact-map').setView([20, 0], 2);
+                
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(this.map);
+                
+                // Add impact markers
+                this.simulationData
+                    .filter(sim => sim.impact_occurred && sim.impact_location)
+                    .forEach(sim => {
+                        const impact = sim.impact_occurred ? 'IMPACT' : 'MISS';
+                        const energy = sim.energy_megatons ? `${sim.energy_megatons} MT` : 'N/A';
+                        
+                        const markerColor = sim.impact_occurred ? 'red' : 'green';
+                        const marker = L.circleMarker(
+                            [sim.impact_location.latitude, sim.impact_location.longitude],
+                            {
+                                radius: Math.min(20, Math.max(5, (sim.energy_megatons || 1) / 10)),
+                                color: markerColor,
+                                fillColor: markerColor,
+                                fillOpacity: 0.7,
+                                weight: 2
+                            }
+                        ).addTo(this.map);
+                        
+                        marker.bindPopup(`
+                            <strong>${impact}</strong><br>
+                            Energy: ${energy}<br>
+                            Location: ${sim.impact_location.continent}<br>
+                            Type: ${sim.impact_location.location_type}<br>
+                            Date: ${new Date(sim.timestamp).toLocaleDateString()}
+                        `);
+                    });
+                
+                // Fit map to show all markers
+                if (this.simulationData.filter(sim => sim.impact_occurred).length > 0) {
+                    const group = new L.featureGroup(
+                        this.simulationData
+                            .filter(sim => sim.impact_occurred && sim.impact_location)
+                            .map(sim => L.marker([sim.impact_location.latitude, sim.impact_location.longitude]))
+                    );
+                    this.map.fitBounds(group.getBounds().pad(0.1));
+                }
+            }
+            
+            renderCharts() {
+                this.renderEnergyChart();
+                this.renderImpactRatioChart();
+                this.renderTimelineChart();
+            }
+            
+            renderEnergyChart() {
+                const ctx = document.getElementById('energy-chart').getContext('2d');
+                const energies = this.simulationData
+                    .filter(sim => sim.energy_megatons)
+                    .map(sim => sim.energy_megatons)
+                    .slice(0, 20); // Last 20 simulations
+                
+                const labels = energies.map((_, index) => `Sim ${index + 1}`);
+                
+                if (this.charts.energy) {
+                    this.charts.energy.destroy();
+                }
+                
+                this.charts.energy = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Impact Energy (MT)',
+                            data: energies,
+                            backgroundColor: energies.map(energy => 
+                                energy > 100 ? 'rgba(255, 107, 107, 0.8)' : 
+                                energy > 50 ? 'rgba(255, 165, 0, 0.8)' : 'rgba(79, 172, 254, 0.8)'
+                            ),
+                            borderColor: energies.map(energy => 
+                                energy > 100 ? 'rgba(255, 107, 107, 1)' : 
+                                energy > 50 ? 'rgba(255, 165, 0, 1)' : 'rgba(79, 172, 254, 1)'
+                            ),
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            title: {
+                                display: true,
+                                text: 'Impact Energy Distribution',
+                                color: '#fff'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { color: '#a0a0c0' },
+                                grid: { color: 'rgba(255,255,255,0.1)' }
+                            },
+                            x: {
+                                ticks: { color: '#a0a0c0' },
+                                grid: { color: 'rgba(255,255,255,0.1)' }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            renderImpactRatioChart() {
+                const ctx = document.getElementById('impact-ratio-chart').getContext('2d');
+                const impacts = this.simulationData.filter(sim => sim.impact_occurred).length;
+                const misses = this.simulationData.length - impacts;
+                
+                if (this.charts.impactRatio) {
+                    this.charts.impactRatio.destroy();
+                }
+                
+                this.charts.impactRatio = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Impacts', 'Near Misses'],
+                        datasets: [{
+                            data: [impacts, misses],
+                            backgroundColor: [
+                                'rgba(255, 107, 107, 0.8)',
+                                'rgba(76, 175, 80, 0.8)'
+                            ],
+                            borderColor: [
+                                'rgba(255, 107, 107, 1)',
+                                'rgba(76, 175, 80, 1)'
+                            ],
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: '#fff' }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            renderTimelineChart() {
+                const ctx = document.getElementById('timeline-chart').getContext('2d');
+                
+                // Group by date
+                const dailyData = this.simulationData.reduce((acc, sim) => {
+                    const date = new Date(sim.timestamp).toLocaleDateString();
+                    acc[date] = (acc[date] || 0) + 1;
+                    return acc;
+                }, {});
+                
+                const labels = Object.keys(dailyData).slice(-10); // Last 10 days
+                const data = labels.map(date => dailyData[date]);
+                
+                if (this.charts.timeline) {
+                    this.charts.timeline.destroy();
+                }
+                
+                this.charts.timeline = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Simulations per Day',
+                            data: data,
+                            borderColor: 'rgba(79, 172, 254, 1)',
+                            backgroundColor: 'rgba(79, 172, 254, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: { color: '#fff' }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { color: '#a0a0c0' },
+                                grid: { color: 'rgba(255,255,255,0.1)' }
+                            },
+                            x: {
+                                ticks: { color: '#a0a0c0' },
+                                grid: { color: 'rgba(255,255,255,0.1)' }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            renderSimulationsList() {
+                const container = document.getElementById('simulations-list');
+                
+                if (this.simulationData.length === 0) {
+                    container.innerHTML = `
+                        <div class="no-data">
+                            <h3>No Simulation Data Yet</h3>
+                            <p>Run some simulations in the main simulator to see data here!</p>
+                            <button class="clear-btn" onclick="window.location.href='index.html'">Go Run Simulations</button>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = this.simulationData.map(sim => `
+                    <div class="simulation-item ${sim.impact_occurred ? 'impact' : 'miss'}" 
+                         onclick="visualizer.showSimulationDetails(${sim.id})">
+                        <div class="simulation-header">
+                            <div class="simulation-title">
+                                ${sim.impact_occurred ? '💥 IMPACT DETECTED' : '☄️ ASTEROID MISSED'}
+                            </div>
+                            <div class="impact-badge ${sim.impact_occurred ? 'impact' : 'miss'}">
+                                ${sim.impact_occurred ? 'IMPACT' : 'MISS'}
+                            </div>
+                        </div>
+                        <div class="simulation-date">
+                            ${new Date(sim.timestamp).toLocaleString()}
+                        </div>
+                        <div class="simulation-details">
+                            <div class="detail-item">
+                                <span class="detail-label">Energy:</span>
+                                <span class="detail-value">${sim.energy_megatons ? sim.energy_megatons + ' MT' : 'N/A'}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Diameter:</span>
+                                <span class="detail-value">${sim.simulationParameters?.diameter || 'N/A'} km</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Velocity:</span>
+                                <span class="detail-value">${sim.simulationParameters?.velocity || 'N/A'} km/s</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Location:</span>
+                                <span class="detail-value">${sim.impact_location ? sim.impact_location.continent : 'N/A'}</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            showSimulationDetails(simulationId) {
+                const simulation = this.simulationData.find(sim => sim.id === simulationId);
+                if (simulation) {
+                    // Store the selected simulation data and open impact analysis
+                    localStorage.setItem('impactData', JSON.stringify(simulation));
+                    window.open('impact-analysis.html?data=' + encodeURIComponent(JSON.stringify(simulation)), '_blank');
+                }
+            }
+            
+            clearData() {
+                if (confirm('Are you sure you want to clear all simulation data? This action cannot be undone.')) {
+                    localStorage.removeItem('asteroidSimulations');
+                    this.simulationData = [];
+                    this.renderAllVisualizations();
+                    
+                    // Destroy all charts
+                    Object.values(this.charts).forEach(chart => {
+                        if (chart && typeof chart.destroy === 'function') {
+                            chart.destroy();
+                        }
+                    });
+                    this.charts = {};
+                }
+            }
+        }
+        
+        // Initialize the visualizer when the page loads
+        let visualizer;
+        document.addEventListener('DOMContentLoaded', () => {
+            visualizer = new SimulationVisualizer();
+        });
+    </script>
+</body>
+</html>

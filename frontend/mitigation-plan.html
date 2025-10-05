@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mitigation Plan - Asteroid Impact Simulator</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #0a0e2a; color: #fff; overflow-x: hidden; }
+        
+        .header {
+            background: linear-gradient(135deg, #1a2a6c, #4facfe);
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, #fff, #a0e7ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(79, 172, 254, 0.5);
+            color: #4facfe;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .back-btn:hover {
+            background: rgba(79, 172, 254, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .mitigation-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .mitigation-card {
+            background: rgba(20, 25, 60, 0.8);
+            border-radius: 15px;
+            padding: 1.5rem;
+            border-left: 4px solid #4caf50;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        
+        .mitigation-card h2 {
+            color: #4caf50;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+        
+        .phase-tabs {
+            display: flex;
+            margin-bottom: 2rem;
+            background: rgba(20, 25, 60, 0.8);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .phase-tab {
+            flex: 1;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .phase-tab.active {
+            background: rgba(76, 175, 80, 0.2);
+            border-bottom: 3px solid #4caf50;
+        }
+        
+        .phase-tab:hover {
+            background: rgba(76, 175, 80, 0.1);
+        }
+        
+        .phase-content {
+            display: none;
+            background: rgba(20, 25, 60, 0.8);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .phase-content.active {
+            display: block;
+        }
+        
+        .action-item {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: rgba(30, 35, 70, 0.5);
+            border-radius: 8px;
+            border-left: 3px solid #4caf50;
+        }
+        
+        .map-container {
+            height: 500px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            margin-bottom: 2rem;
+            border: 2px solid rgba(76, 175, 80, 0.5);
+        }
+        
+        #mitigation-map {
+            height: 100%;
+            width: 100%;
+        }
+        
+        .resources-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+        
+        .resource-item {
+            background: rgba(30, 35, 70, 0.5);
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 3px solid #4facfe;
+        }
+        
+        @media (max-width: 768px) {
+            .mitigation-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .phase-tabs {
+                flex-direction: column;
+            }
+            
+            .resources-list {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <button class="back-btn" onclick="window.history.back()">← Back to Simulation</button>
+        <h1>🛡️ Mitigation & Recovery Plan</h1>
+        <p>Comprehensive strategy for responding to and recovering from the asteroid impact</p>
+    </div>
+    
+    <div class="container">
+        <div class="mitigation-grid">
+            <div class="mitigation-card">
+                <h2>📊 Impact Assessment</h2>
+                <p>Energy Release: <span id="mitigation-energy">0</span> megatons</p>
+                <p>Affected Population: <span id="affected-population">0</span> million people</p>
+                <p>Economic Impact: $<span id="economic-impact">0</span> trillion</p>
+            </div>
+            
+            <div class="mitigation-card">
+                <h2>🎯 Priority Actions</h2>
+                <p>Evacuation Radius: <span id="evacuation-radius">0</span> km</p>
+                <p>Emergency Shelters: <span id="shelters-needed">0</span> facilities</p>
+                <p>International Aid: <span id="aid-countries">0</span> countries mobilized</p>
+            </div>
+        </div>
+        
+        <div class="phase-tabs">
+            <div class="phase-tab active" data-phase="immediate">Immediate Response (0-72 hours)</div>
+            <div class="phase-tab" data-phase="short-term">Short-Term Recovery (1 week - 3 months)</div>
+            <div class="phase-tab" data-phase="long-term">Long-Term Recovery (3 months - 5 years)</div>
+        </div>
+        
+        <div class="phase-content active" id="immediate-content">
+            <h2>🚨 Immediate Response Actions</h2>
+            <div id="immediate-actions">
+                <!-- Actions will be populated by JavaScript -->
+            </div>
+        </div>
+        
+        <div class="phase-content" id="short-term-content">
+            <h2>🏥 Short-Term Recovery Actions</h2>
+            <div id="short-term-actions">
+                <!-- Actions will be populated by JavaScript -->
+            </div>
+        </div>
+        
+        <div class="phase-content" id="long-term-content">
+            <h2>🏗️ Long-Term Recovery Actions</h2>
+            <div id="long-term-actions">
+                <!-- Actions will be populated by JavaScript -->
+            </div>
+        </div>
+        
+        <div class="map-container">
+            <div id="mitigation-map"></div>
+        </div>
+        
+        <div class="mitigation-card">
+            <h2>🌐 International Resources</h2>
+            <div class="resources-list" id="resources-list">
+                <!-- Resources will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        // Get impact data from URL parameters or localStorage
+        const urlParams = new URLSearchParams(window.location.search);
+        let impactData;
+        
+        if (urlParams.has('data')) {
+            impactData = JSON.parse(decodeURIComponent(urlParams.get('data')));
+        } else {
+            impactData = JSON.parse(localStorage.getItem('impactData')) || getDefaultImpactData();
+        }
+        
+        // Initialize the page with impact data
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeMitigationPlan(impactData);
+            setupPhaseTabs();
+        });
+        
+        function initializeMitigationPlan(data) {
+    // Get country-specific data based on impact location
+    const countryData = getCountrySpecificData(data.impact_location);
+    
+    // Update metrics with real calculations
+    document.getElementById('mitigation-energy').textContent = data.energy_megatons.toLocaleString();
+    
+    // Calculate realistic affected population
+    const affectedPopulation = calculateAffectedPopulation(data, countryData);
+    document.getElementById('affected-population').textContent = affectedPopulation.toLocaleString();
+    
+    // Calculate economic impact based on country GDP and impact energy
+    const economicImpact = calculateEconomicImpact(data, countryData);
+    document.getElementById('economic-impact').textContent = economicImpact.toFixed(1);
+    
+    // Realistic evacuation radius based on impact energy and population density
+    const evacuationRadius = calculateEvacuationRadius(data, countryData);
+    document.getElementById('evacuation-radius').textContent = evacuationRadius.toLocaleString();
+    
+    // Calculate shelters needed based on affected population
+    const sheltersNeeded = Math.ceil(affectedPopulation / 1000); // 1 shelter per 1000 people
+    document.getElementById('shelters-needed').textContent = sheltersNeeded.toLocaleString();
+    
+    // Calculate international aid based on impact severity and country relationships
+    const aidCountries = calculateAidCountries(data, countryData);
+    document.getElementById('aid-countries').textContent = aidCountries;
+    
+    // Generate country-specific mitigation actions
+    generateMitigationActions(data, countryData);
+    
+    // Initialize map with country-specific data
+    initializeMitigationMap(data, countryData);
+    
+    // Generate country-specific resource list
+    generateResourceList(data, countryData);
+}
+
+function getCountrySpecificData(impactLocation) {
+    // Map coordinates to approximate country/region
+    const countries = {
+        'North America': {
+            name: 'United States',
+            populationDensity: 36, // per km²
+            gdpPerCapita: 65000,
+            emergencyServices: ['FEMA', 'National Guard', 'Red Cross'],
+            hospitalsPerMillion: 2800,
+            coastal: impactLocation.location_type === 'Ocean',
+            majorCities: ['New York', 'Los Angeles', 'Chicago', 'Houston'],
+            neighboringCountries: ['Canada', 'Mexico']
+        },
+        'Europe': {
+            name: 'Central Europe',
+            populationDensity: 112,
+            gdpPerCapita: 45000,
+            emergencyServices: ['EU Civil Protection', 'National Red Cross Societies'],
+            hospitalsPerMillion: 3500,
+            coastal: impactLocation.longitude > -10 && impactLocation.longitude < 40,
+            majorCities: ['London', 'Paris', 'Berlin', 'Madrid'],
+            neighboringCountries: ['France', 'Germany', 'UK', 'Italy']
+        },
+        'Asia': {
+            name: impactLocation.latitude > 30 ? 'East Asia' : 'Southeast Asia',
+            populationDensity: impactLocation.latitude > 30 ? 150 : 300,
+            gdpPerCapita: impactLocation.latitude > 30 ? 35000 : 15000,
+            emergencyServices: ['National Emergency Services', 'UN OCHA'],
+            hospitalsPerMillion: impactLocation.latitude > 30 ? 4200 : 1800,
+            coastal: true,
+            majorCities: ['Tokyo', 'Beijing', 'Shanghai', 'Singapore'],
+            neighboringCountries: ['Japan', 'China', 'South Korea', 'Philippines']
+        },
+        'Africa': {
+            name: impactLocation.latitude > 0 ? 'North Africa' : 'Southern Africa',
+            populationDensity: 45,
+            gdpPerCapita: 8000,
+            emergencyServices: ['African Union', 'UN OCHA Africa'],
+            hospitalsPerMillion: 900,
+            coastal: Math.abs(impactLocation.latitude) < 30,
+            majorCities: ['Cairo', 'Lagos', 'Nairobi', 'Johannesburg'],
+            neighboringCountries: ['Egypt', 'Nigeria', 'Kenya', 'South Africa']
+        },
+        'South America': {
+            name: 'South America',
+            populationDensity: 25,
+            gdpPerCapita: 12000,
+            emergencyServices: ['National Civil Defense', 'UNASUR'],
+            hospitalsPerMillion: 2200,
+            coastal: true,
+            majorCities: ['São Paulo', 'Buenos Aires', 'Rio de Janeiro', 'Lima'],
+            neighboringCountries: ['Brazil', 'Argentina', 'Chile', 'Peru']
+        },
+        'Ocean': {
+            name: 'Pacific Region',
+            populationDensity: 0,
+            gdpPerCapita: 0,
+            emergencyServices: ['Pacific Islands Forum', 'US Pacific Command'],
+            hospitalsPerMillion: 500,
+            coastal: true,
+            majorCities: ['Honolulu', 'Suva', 'Apia'],
+            neighboringCountries: ['USA', 'Australia', 'New Zealand', 'Japan']
+        }
+    };
+
+    return countries[impactLocation.continent] || countries['North America'];
+}
+
+function calculateAffectedPopulation(data, countryData) {
+    const baseRadius = Math.sqrt(data.energy_megatons) * 20; // km
+    const populationDensity = countryData.populationDensity;
+    const affectedArea = Math.PI * Math.pow(baseRadius, 2);
+    
+    // Adjust for urban vs rural impact
+    const densityMultiplier = data.impact_location.location_type === 'Urban' ? 5 : 1;
+    
+    return Math.round(affectedArea * populationDensity * densityMultiplier);
+}
+
+function calculateEconomicImpact(data, countryData) {
+    const baseImpact = data.energy_megatons * 0.1; // Base $100M per megaton
+    const gdpMultiplier = countryData.gdpPerCapita / 50000; // Relative to US GDP
+    
+    return baseImpact * gdpMultiplier;
+}
+
+function calculateEvacuationRadius(data, countryData) {
+    const baseRadius = Math.sqrt(data.energy_megatons) * 25; // km
+    // Denser populations need larger evacuation zones
+    const densityFactor = 1 + (countryData.populationDensity / 100);
+    
+    return Math.round(baseRadius * densityFactor);
+}
+
+function calculateAidCountries(data, countryData) {
+    const baseAid = Math.min(30, Math.round(data.energy_megatons / 5));
+    // More international support for less developed countries
+    const developmentFactor = countryData.gdpPerCapita < 20000 ? 1.5 : 1;
+    
+    return Math.round(baseAid * developmentFactor);
+}
+        
+        function generateMitigationActions(data, countryData) {
+    const impactEnergy = data.energy_megatons;
+    const locationType = data.impact_location.location_type;
+    const countryName = countryData.name;
+    
+    // Generate actions based on impact severity and location
+    const immediateActions = [
+        `Activate ${countryData.emergencyServices.join(' and ')} emergency protocols`,
+        `Evacuate population within ${calculateEvacuationRadius(data, countryData)} km radius of impact zone`,
+        `Mobilize ${countryData.majorCities.slice(0, 3).join(', ')} emergency services`,
+        `Establish emergency communication with ${countryData.neighboringCountries.slice(0, 2).join(' and ')}`,
+        `Set up triage centers in ${Math.ceil(calculateAffectedPopulation(data, countryData) / 50000)} locations`
+    ];
+
+    const shortTermActions = [
+        `Coordinate with ${countryData.neighboringCountries.join(', ')} for cross-border aid`,
+        `Deploy ${Math.ceil(calculateAffectedPopulation(data, countryData) / 10000)} mobile medical units`,
+        `Restore critical infrastructure in ${countryData.majorCities[0]} and surrounding areas`,
+        `Establish supply chains through ${countryData.coastal ? 'ports' : 'border crossings'}`,
+        `Set up ${Math.ceil(calculateAffectedPopulation(data, countryData) / 5000)} temporary housing units`
+    ];
+
+    const longTermActions = [
+        `Implement ${countryName} economic recovery program ($${calculateEconomicImpact(data, countryData).toFixed(1)}T budget)`,
+        `Rebuild infrastructure with ${countryData.hospitalsPerMillion > 2000 ? 'advanced' : 'basic'} resilience standards`,
+        `Develop agricultural recovery plan for ${countryName} region`,
+        `Establish memorial and education centers in ${countryData.majorCities.slice(0, 2).join(' and ')}`,
+        `Coordinate international rebuilding effort with ${calculateAidCountries(data, countryData)} countries`
+    ];
+
+    // Add location-specific actions
+    if (locationType === 'Ocean') {
+        immediateActions.push(`Issue tsunami warnings for ${countryData.coastal ? countryData.name + ' coastlines' : 'Pacific islands'}`);
+        immediateActions.push(`Dispatch naval vessels from ${countryData.neighboringCountries[0]} for search and rescue`);
+    } else if (locationType === 'Urban') {
+        immediateActions.push(`Implement urban search and rescue in ${countryData.majorCities[0]}`);
+        immediateActions.push(`Secure hazardous materials in ${countryName} industrial zones`);
+    }
+
+    // Display actions
+    displayActions(immediateActions, 'immediate-actions');
+    displayActions(shortTermActions, 'short-term-actions');
+    displayActions(longTermActions, 'long-term-actions');
+}
+        
+        function displayActions(actions, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            actions.forEach((action, index) => {
+                const item = document.createElement('div');
+                item.className = 'action-item';
+                item.innerHTML = `
+                    <strong>${index + 1}.</strong> ${action}
+                `;
+                container.appendChild(item);
+            });
+        }
+        
+        function initializeMitigationMap(data, countryData) {
+            // Create map centered on impact location
+            const map = L.map('mitigation-map').setView(
+                [data.impact_location.latitude, data.impact_location.longitude], 
+                6
+            );
+            
+            // Add tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            // Calculate evacuation and response zones
+            const evacuationRadius = Math.sqrt(data.energy_megatons) * 15;
+            const medicalRadius = evacuationRadius * 0.7;
+            const supplyRadius = evacuationRadius * 1.5;
+            
+            // Add evacuation zone
+            L.circle([data.impact_location.latitude, data.impact_location.longitude], {
+                color: 'red',
+                fillColor: '#f03',
+                fillOpacity: 0.3,
+                radius: evacuationRadius * 1000
+            }).addTo(map).bindPopup('Evacuation Zone');
+            
+            // Add medical facilities zone
+            L.circle([data.impact_location.latitude, data.impact_location.longitude], {
+                color: 'blue',
+                fillColor: '#00f',
+                fillOpacity: 0.2,
+                radius: medicalRadius * 1000
+            }).addTo(map).bindPopup('Medical Response Zone');
+            
+            // Add supply distribution zone
+            L.circle([data.impact_location.latitude, data.impact_location.longitude], {
+                color: 'green',
+                fillColor: '#0f0',
+                fillOpacity: 0.2,
+                radius: supplyRadius * 1000
+            }).addTo(map).bindPopup('Supply Distribution Zone');
+            
+            // Add impact marker
+            L.marker([data.impact_location.latitude, data.impact_location.longitude])
+                .addTo(map)
+                .bindPopup(`
+                    <strong>Impact Site</strong><br>
+                    ${data.impact_location.continent}<br>
+                    ${data.impact_location.location_type}
+                `);
+            
+            // Add nearby cities as potential response centers
+            const cities = [
+                { name: 'Response Center A', lat: data.impact_location.latitude + 2, lng: data.impact_location.longitude + 2 },
+                { name: 'Response Center B', lat: data.impact_location.latitude - 2, lng: data.impact_location.longitude - 2 },
+                { name: 'Medical Facility', lat: data.impact_location.latitude + 1, lng: data.impact_location.longitude - 3 }
+            ];
+            
+            cities.forEach(city => {
+                L.marker([city.lat, city.lng])
+                    .addTo(map)
+                    .bindPopup(`<strong>${city.name}</strong><br>Potential response facility`);
+            });
+            const responseCenters = countryData.majorCities.map((city, index) => {
+        return {
+            name: `${city} Response Center`,
+            lat: data.impact_location.latitude + (index * 2 - 2), // Spread around impact
+            lng: data.impact_location.longitude + (index * 2 - 2),
+            type: index === 0 ? 'Primary' : 'Secondary'
+        };
+    });
+
+    responseCenters.forEach(center => {
+        L.marker([center.lat, center.lng])
+            .addTo(map)
+            .bindPopup(`<strong>${center.name}</strong><br>${center.type} response facility<br>${countryData.name}`);
+    });
+        }
+        
+        function generateResourceList(data, countryData) {
+    const continent = data.impact_location.continent;
+    const countryName = countryData.name;
+    
+    const resources = {
+        'North America': [
+            { name: 'FEMA (Federal Emergency Management Agency)', type: 'Federal Response', contact: 'fema.gov', capacity: '5000 personnel' },
+            { name: 'American Red Cross', type: 'Medical & Shelter', contact: 'redcross.org', capacity: '10000 volunteers' },
+            { name: 'National Guard', type: 'Military Support', contact: 'nationalguard.mil', capacity: '20000 troops' },
+            { name: 'NASA Planetary Defense', type: 'Technical Support', contact: 'nasa.gov', capacity: 'Expert analysis' }
+        ],
+        'Europe': [
+            { name: 'EU Civil Protection Mechanism', type: 'Regional Coordination', contact: 'ec.europa.eu', capacity: 'All member states' },
+            { name: 'International Red Cross Europe', type: 'Medical Support', contact: 'redcross.eu', capacity: '5000 personnel' },
+            { name: 'NATO Emergency Response', type: 'Military Support', contact: 'nato.int', capacity: 'Rapid deployment' },
+            { name: 'ESA Planetary Defense', type: 'Technical Support', contact: 'esa.int', capacity: 'Space monitoring' }
+        ],
+        'Asia': [
+            { name: 'ASEAN Coordinating Centre', type: 'Regional Response', contact: 'asean.org', capacity: '10 member countries' },
+            { name: 'Japan Disaster Relief Team', type: 'Specialized Response', contact: 'japan.go.jp', capacity: 'Earthquake experts' },
+            { name: 'China Earthquake Administration', type: 'Technical Support', contact: 'cea.gov.cn', capacity: 'Seismic monitoring' },
+            { name: 'Asian Development Bank', type: 'Financial Aid', contact: 'adb.org', capacity: '$1B emergency fund' }
+        ],
+        'Africa': [
+            { name: 'African Union Emergency Response', type: 'Continental Coordination', contact: 'au.int', capacity: '55 member states' },
+            { name: 'UN OCHA Africa', type: 'International Aid', contact: 'unocha.org', capacity: 'Regional coordination' },
+            { name: 'Red Cross Africa', type: 'Medical Support', contact: 'redcross.org.africa', capacity: 'Pan-African network' },
+            { name: 'World Bank Africa', type: 'Financial Support', contact: 'worldbank.org', capacity: 'Emergency funding' }
+        ],
+        'South America': [
+            { name: 'UNASUR Emergency Response', type: 'Regional Coordination', contact: 'unasur.org', capacity: '12 member states' },
+            { name: 'Brazilian Civil Defense', type: 'National Response', contact: 'defesacivil.gov.br', capacity: 'Amazon region expertise' },
+            { name: 'Organization of American States', type: 'Hemispheric Support', contact: 'oas.org', capacity: '35 member countries' },
+            { name: 'World Bank Latin America', type: 'Financial Aid', contact: 'worldbank.org', capacity: 'Disaster relief funds' }
+        ],
+        'Ocean': [
+            { name: 'Pacific Islands Forum', type: 'Regional Coordination', contact: 'forumsec.org', capacity: '18 Pacific nations' },
+            { name: 'US Pacific Command', type: 'Military & Logistics', contact: 'pacom.mil', capacity: 'Naval deployment' },
+            { name: 'Australian Maritime Safety', type: 'Search & Rescue', contact: 'amsa.gov.au', capacity: 'Oceanic operations' },
+            { name: 'International Tsunami Center', type: 'Warning System', contact: 'tsunami.gov', capacity: 'Pacific monitoring' }
+        ]
+    };
+
+    const container = document.getElementById('resources-list');
+    container.innerHTML = '';
+    
+    const continentResources = resources[continent] || resources['North America'];
+    
+    continentResources.forEach(resource => {
+        const item = document.createElement('div');
+        item.className = 'resource-item';
+        item.innerHTML = `
+            <h3>${resource.name}</h3>
+            <p><strong>Type:</strong> ${resource.type}</p>
+            <p><strong>Contact:</strong> ${resource.contact}</p>
+            <p><strong>Capacity:</strong> ${resource.capacity}</p>
+            <p><strong>Specialization:</strong> ${countryName} region response</p>
+        `;
+        container.appendChild(item);
+    });
+}
+        
+        function setupPhaseTabs() {
+            const tabs = document.querySelectorAll('.phase-tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // Remove active class from all tabs and content
+                    document.querySelectorAll('.phase-tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.phase-content').forEach(c => c.classList.remove('active'));
+                    
+                    // Add active class to clicked tab and corresponding content
+                    this.classList.add('active');
+                    document.getElementById(this.dataset.phase + '-content').classList.add('active');
+                });
+            });
+        }
+        
+        function getDefaultImpactData() {
+            return {
+                energy_megatons: 150,
+                impact_location: {
+                    latitude: 40.0,
+                    longitude: -100.0,
+                    location_type: 'Land',
+                    continent: 'North America'
+                }
+            };
+        }
+    </script>
+</body>
+</html>
